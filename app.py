@@ -242,11 +242,11 @@ def best_guess(position, prior_guesses=None, low=1, high=100):
     return best_guess_third(prior_guesses, low, high)
 
 
-def synced_actual_guess_input(position_prefix, recommended_guess, low=1, high=100):
+def synced_actual_guess_input(position_prefix, recommended_guess, low=1, high=100, force_sync=False):
     actual_key = f"{position_prefix}_actual_guess"
     recommended_key = f"{position_prefix}_last_recommended_guess"
 
-    if st.session_state.get(recommended_key) != recommended_guess:
+    if force_sync or st.session_state.get(recommended_key) != recommended_guess:
         st.session_state[actual_key] = recommended_guess
         st.session_state[recommended_key] = recommended_guess
 
@@ -272,6 +272,9 @@ st.caption("Pick the best number on 1-100 using backward-induction optimal-play 
 
 low, high = 1, 100
 position = st.selectbox("Your position", [1, 2, 3], index=0)
+last_position = st.session_state.get("_last_position")
+position_changed = last_position != position
+st.session_state["_last_position"] = position
 
 if position == 1:
     with st.spinner("Computing follower-aware recommendation..."):
@@ -279,7 +282,7 @@ if position == 1:
 
     st.success(f"Recommended guess: {recommended_guess}")
 
-    actual_guess = synced_actual_guess_input("p1", recommended_guess, low, high)
+    actual_guess = synced_actual_guess_input("p1", recommended_guess, low, high, force_sync=position_changed)
 
     optimal_second, optimal_third = optimal_following_guesses(actual_guess, low, high)
 
@@ -333,7 +336,7 @@ elif position == 2:
     recommended_guess = best_guess(2, [first], low, high)
     st.success(f"Recommended guess: {recommended_guess}")
 
-    actual_guess = synced_actual_guess_input("p2", recommended_guess, low, high)
+    actual_guess = synced_actual_guess_input("p2", recommended_guess, low, high, force_sync=position_changed)
 
     if actual_guess == first:
         st.error("Your guess cannot match the first player's guess.")
@@ -392,7 +395,7 @@ else:
     recommended_guess = best_guess(3, [first, second], low, high)
     st.success(f"Recommended guess: {recommended_guess}")
 
-    actual_guess = synced_actual_guess_input("p3", recommended_guess, low, high)
+    actual_guess = synced_actual_guess_input("p3", recommended_guess, low, high, force_sync=position_changed)
 
     if actual_guess in {first, second}:
         st.error("Your guess must be different from the first and second player guesses.")
